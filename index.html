@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自動條碼轉換產生器</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bwip-js@3.4.3/dist/bwip-js-min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+    
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold mb-4">條碼設定面板</h2>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700">條碼類型</label>
+        <select id="barcodeType" class="mt-1 block w-full p-2 border rounded">
+          <option value="code128">Code 128 (預設)</option>
+          <option value="ean13">EAN-13</option>
+          <option value="code39">Code 39</option>
+          <option value="qrcode">QR Code</option>
+          <option value="datamatrix">Data Matrix</option>
+          <option value="pdf417">PDF417</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">輸入內容</label>
+        <input type="text" id="barcodeText" value="12345678" class="mt-1 block w-full p-2 border rounded">
+      </div>
+
+      <hr class="border-gray-200 my-4">
+
+      <div id="panel-1d" class="space-y-3">
+        <h3 class="font-medium text-gray-600">1D 條碼參數</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <label>條型寬度 (X軸): <input type="number" id="scaleX" value="2" step="0.5" class="w-full p-1 border rounded"></label>
+          <label>條型高度 (Y軸): <input type="number" id="scaleY" value="50" class="w-full p-1 border rounded"></label>
+          <label>上邊距 (px): <input type="number" id="padTop" value="10" class="w-full p-1 border rounded"></label>
+          <label>下邊距 (px): <input type="number" id="padBottom" value="10" class="w-full p-1 border rounded"></label>
+          <label>左邊距 (px): <input type="number" id="padLeft" value="10" class="w-full p-1 border rounded"></label>
+          <label>右邊距 (px): <input type="number" id="padRight" value="10" class="w-full p-1 border rounded"></label>
+        </div>
+        <label class="block">字元大小 (pt): <input type="number" id="fontSize" value="10" class="w-full p-1 border rounded"></label>
+      </div>
+
+      <div id="panel-2d" class="space-y-3 hidden">
+        <h3 class="font-medium text-gray-600">2D 條碼參數</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <label>尺寸 (寬/高 px): <input type="number" id="size2d" value="250" class="w-full p-1 border rounded"></label>
+          <label>邊距 (Margin px): <input type="number" id="margin2d" value="10" class="w-full p-1 border rounded"></label>
+        </div>
+        <div id="logo-upload-container">
+          <label class="block text-sm font-medium text-gray-700">上傳 LOGO 圖片 (僅限 QR Code)</label>
+          <input type="file" id="logoFile" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col justify-between items-center bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300">
+      <h2 class="text-xl font-bold mb-4 self-start">即時預覽</h2>
+      
+      <div id="preview-container" class="my-auto bg-white p-4 shadow-sm">
+        <canvas id="barcodeCanvas"></canvas>
+        <div id="qrcodeContainer" class="hidden"></div>
+      </div>
+
+      <div class="w-full grid grid-cols-2 gap-4 mt-6">
+        <button id="btnDownloadPNG" class="bg-blue-600 text-white py-2 px-4 rounded shadow hover:bg-blue-700 transition">下載 PNG 檔</button>
+        <button id="btnDownloadSVG" class="bg-green-600 text-white py-2 px-4 rounded shadow hover:bg-green-700 transition">下載 SVG 檔</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 這裡放入下方的 JavaScript 邏輯
+  </script>
+</body>
+</html>
