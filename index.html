@@ -7,10 +7,34 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/bwip-js@3.4.3/dist/bwip-js-min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
-</head>
-<body class="bg-gray-100 p-8">
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=barcode" />
 
-  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><text x='0' y='20' font-family='Material Symbols Outlined' font-size='24'>barcode</text></svg>">
+
+  <style>
+    /* 確保 Icon 的垂直對齊與渲染正確 */
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <nav class="w-full bg-white shadow-sm border-b border-gray-200 py-4 px-8 mb-8">
+    <div class="max-w-6xl mx-auto flex items-center space-x-3">
+      <span class="material-symbols-outlined text-blue-600 text-3xl select-none">
+        barcode
+      </span>
+      <h1 class="text-xl font-bold text-gray-800 tracking-wide">
+        自動條碼轉換產生器
+      </h1>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow w-full mb-auto">
     
     <div class="flex flex-col justify-between items-center bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 min-h-[450px]">
       <h2 class="text-xl font-bold mb-4 self-start">即時預覽</h2>
@@ -120,6 +144,10 @@
 
   </div>
 
+  <footer class="w-full text-center py-4 text-sm text-gray-400 mt-8">
+    © 2026 | witt3c digital
+  </footer>
+
   <script>
     let uploadedLogoBase64 = null;
     let qrCodeInstance = null;
@@ -180,7 +208,6 @@
       }
     });
 
-    // 通用套件參數構建優化（針對完全貼平的物理校正）
     function buildBwipOptions(type, text, is1D) {
       const typeMapping = { code128: 'code128', ean13: 'ean13', code39: 'code39', datamatrix: 'datamatrix', pdf417: 'pdf417' };
       
@@ -189,7 +216,6 @@
         text: text,
         includetext: is1D, 
         textxalign: 'center',
-        // 【核心修正】強制覆蓋底層套件的油墨與擴散預設安全白邊，讓邊界完全可控
         inkspread: 0,
       };
 
@@ -207,7 +233,6 @@
         options.paddingright = hMargin;
         options.textsize = parseInt(document.getElementById('fontSize').value);
       } else {
-        // Data Matrix & PDF417 貼平補正
         const size2d = parseInt(document.getElementById('size2d').value);
         const margin2d = parseInt(document.getElementById('margin2d').value);
         options.scaleX = size2d / 100; 
@@ -220,14 +245,12 @@
       return options;
     }
 
-    // === 主渲染函式 ===
     function generateBarcode() {
       const type = document.getElementById('barcodeType').value;
       const text = document.getElementById('barcodeText').value || " ";
 
       if (!text.trim()) return;
 
-      // 1. QR Code 完美貼平處理
       if (type === 'qrcode') {
         const size = parseInt(document.getElementById('size2d').value);
         const margin = parseInt(document.getElementById('margin2d').value);
@@ -239,7 +262,7 @@
           height: size,
           type: "svg", 
           data: text,
-          margin: margin, // 直接連動 0px 機制
+          margin: margin, 
           image: uploadedLogoBase64, 
           dotsOptions: { color: "#000000", type: "square" },
           backgroundOptions: { color: "#ffffff" },
@@ -248,7 +271,6 @@
             hideBackgroundDots: true, 
             imageSize: 0.3
           },
-          // 【核心修正】強制作為 QR 碼物理無邊界渲染
           qrOptions: {
             typeNumber: 0,
             mode: "Byte",
@@ -259,19 +281,16 @@
         return;
       }
 
-      // 2. 1D 條碼與其他 2D 條碼貼平處理
       const is1D = ['code128', 'ean13', 'code39'].includes(type);
       const options = buildBwipOptions(type, text, is1D);
 
       try {
-        // 先渲染，bwip-js 會自動根據我們給予的 padding 生成對應大小的畫布，且無隱藏安全邊框
         bwipjs.toCanvas('barcodeCanvas', options);
       } catch (e) {
         console.error("條碼渲染錯誤:", e);
       }
     }
 
-    // === 下載邏輯實作 ===
     document.getElementById('btnDownloadPNG').addEventListener('click', function() {
       const type = document.getElementById('barcodeType').value;
       if (type === 'qrcode' && qrCodeInstance) {
