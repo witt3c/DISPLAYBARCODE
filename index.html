@@ -13,8 +13,53 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><text x='0' y='20' font-family='Material Symbols Outlined' font-size='24'>barcode</text></svg>">
 
   <style>
-    /* 核心修正：讓 Tailwind v4 認得 body 上的 .dark 類別切換 */
-    @variant dark (&:where(.dark, .dark *));
+    /* === 核心修正：使用最穩定的 CSS 變數掌控日夜顏色 === */
+    :root {
+      --bg-app: #f3f4f6;          /* bg-gray-100 */
+      --bg-card: #ffffff;         /* bg-white */
+      --bg-preview: #f9fafb;      /* bg-gray-50 */
+      --text-main: #1f2937;       /* text-gray-800 */
+      --text-muted: #4b5563;      /* text-gray-600 */
+      --border-color: #e5e7eb;    /* border-gray-200 */
+      --select-bg: #ffffff;
+    }
+
+    /* 當 body 被加上 .dark-mode 類別時，強制覆蓋顏色變數 */
+    body.dark-mode {
+      --bg-app: #111827;          /* bg-gray-900 */
+      --bg-card: #1f2937;         /* bg-gray-800 */
+      --bg-preview: #111827;      /* 預覽區深色 */
+      --text-main: #f9fafb;       /* text-gray-50 */
+      --text-muted: #9ca3af;      /* text-gray-400 */
+      --border-color: #374151;    /* border-gray-700 */
+      --select-bg: #374151;
+    }
+
+    /* 將變數應用到對應的元素上（完美橋接，不影響原本排版） */
+    #appBody { background-color: var(--bg-app); }
+    .custom-card { background-color: var(--bg-card); color: var(--text-main); }
+    .custom-nav { background-color: var(--bg-card); border-color: var(--border-color); }
+    .custom-nav h1 { color: var(--text-main); }
+    .custom-preview-box { background-color: var(--bg-preview); border-color: var(--border-color); }
+    .custom-preview-box h2 { color: var(--text-main); }
+    .custom-panel h2 { color: var(--text-main); }
+    .custom-panel label { color: var(--text-main); }
+    .custom-panel h3 { color: var(--text-muted); }
+    .custom-panel .flex { color: var(--text-muted); }
+    .custom-input { background-color: var(--select-bg); color: var(--text-main); border-color: var(--border-color); }
+    hr { border-color: var(--border-color); }
+
+    /* 滑動按鈕本體與動畫樣式 */
+    .toggle-dot {
+      transform: translateX(0px);
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    body.dark-mode .toggle-dot {
+      transform: translateX(24px); /* 點擊後右移 */
+    }
+    body.dark-mode .toggle-bg {
+      background-color: #2563eb; /* 變成藍色啟用狀態 */
+    }
 
     /* 確保 Icon 的垂直對齊與渲染正確 */
     .material-symbols-outlined {
@@ -24,35 +69,35 @@
     }
   </style>
 </head>
-<body id="appBody" class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col transition-colors duration-300">
+<body id="appBody" class="min-h-screen flex flex-col transition-colors duration-300">
 
-  <nav class="w-full bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 py-4 px-8 mb-8 transition-colors duration-300">
+  <nav class="custom-nav w-full shadow-sm border-b py-4 px-8 mb-8 transition-colors duration-300">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-3xl select-none">
+        <span class="material-symbols-outlined text-blue-600 text-3xl select-none">
           barcode
         </span>
-        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-wide transition-colors duration-300">
+        <h1 class="text-xl font-bold tracking-wide transition-colors duration-300">
           自動條碼轉換產生器
         </h1>
       </div>
       
       <div class="flex items-center space-x-2 self-end sm:self-auto">
         <span class="material-symbols-outlined text-amber-500 text-xl select-none">light_mode</span>
-        <button id="darkModeToggle" class="w-12 h-6 bg-gray-300 dark:bg-blue-600 rounded-full p-0.5 transition-colors duration-300 focus:outline-none cursor-pointer relative" aria-label="切換深色模式">
-          <div class="w-5 h-5 bg-white rounded-full shadow-md transform duration-300 translate-x-0 dark:translate-x-6 flex items-center justify-center"></div>
+        <button id="darkModeToggle" class="toggle-bg w-12 h-6 bg-gray-300 rounded-full p-0.5 transition-colors duration-300 focus:outline-none cursor-pointer relative" aria-label="切換深色模式">
+          <div class="toggle-dot w-5 h-5 bg-white rounded-full shadow-md flex items-center justify-center"></div>
         </button>
-        <span class="material-symbols-outlined text-slate-400 dark:text-blue-300 text-xl select-none">dark_mode</span>
+        <span class="material-symbols-outlined text-slate-400 text-xl select-none">dark_mode</span>
       </div>
     </div>
   </nav>
 
-  <div class="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow w-full mb-auto transition-colors duration-300">
+  <div class="custom-card max-w-6xl mx-auto rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow w-full mb-auto transition-colors duration-300">
     
-    <div class="flex flex-col justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-6 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 min-h-[450px] transition-colors duration-300">
-      <h2 class="text-xl font-bold mb-4 self-start text-gray-800 dark:text-gray-200">即時預覽</h2>
+    <div class="custom-preview-box flex flex-col justify-between items-center p-6 rounded-lg border border-dashed border-gray-300 min-h-[450px] transition-colors duration-300">
+      <h2 class="text-xl font-bold mb-4 self-start">即時預覽</h2>
       
-      <div id="preview-container" class="my-auto bg-white p-0 shadow-sm flex items-center justify-center min-w-[200px] min-h-[100px] border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div id="preview-container" class="my-auto bg-white p-0 shadow-sm flex items-center justify-center min-w-[200px] min-h-[100px] border border-gray-200 overflow-hidden">
         <canvas id="barcodeCanvas" class="block"></canvas>
         <div id="qrcodeContainer" class="hidden block"></div>
       </div>
@@ -63,12 +108,12 @@
       </div>
     </div>
 
-    <div class="space-y-4">
-      <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">條碼設定面板</h2>
+    <div class="custom-panel space-y-4">
+      <h2 class="text-xl font-bold mb-4">條碼設定面板</h2>
       
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">條碼類型</label>
-        <select id="barcodeType" class="mt-1 block w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 cursor-pointer">
+        <label class="block text-sm font-medium">條碼類型</label>
+        <select id="barcodeType" class="custom-input mt-1 block w-full p-2 border rounded cursor-pointer">
           <option value="code128">Code 128</option>
           <option value="ean13">EAN-13</option>
           <option value="code39">Code 39</option>
@@ -79,85 +124,85 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">輸入內容</label>
-        <input type="text" id="barcodeText" value="12345678" class="mt-1 block w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600">
+        <label class="block text-sm font-medium">輸入內容</label>
+        <input type="text" id="barcodeText" value="12345678" class="custom-input mt-1 block w-full p-2 border rounded">
       </div>
 
-      <hr class="border-gray-200 dark:border-gray-700 my-4">
+      <hr class="my-4">
 
       <div id="panel-1d" class="space-y-4">
-        <h3 class="font-medium text-gray-600 dark:text-gray-400">1D 條碼參數設定</h3>
+        <h3 class="font-medium">1D 條碼參數設定</h3>
         
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>條型寬度</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-scaleX">2 px</span>
+            <span class="font-semibold text-blue-600" id="val-scaleX">2 px</span>
           </div>
           <input type="range" id="scaleX" value="2" min="1" max="6" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>條型總高度</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-scaleY">40 px</span>
+            <span class="font-semibold text-blue-600" id="val-scaleY">40 px</span>
           </div>
           <input type="range" id="scaleY" value="5" min="5" max="150" step="5" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>垂直邊距 (上下)</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-padVertical">0 px</span>
+            <span class="font-semibold text-blue-600" id="val-padVertical">0 px</span>
           </div>
           <input type="range" id="padVertical" value="4" min="0" max="60" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>水平邊距 (左右)</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-padHorizontal">0 px</span>
+            <span class="font-semibold text-blue-600" id="val-padHorizontal">0 px</span>
           </div>
           <input type="range" id="padHorizontal" value="4" min="0" max="100" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>字元大小</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-fontSize">11 pt</span>
+            <span class="font-semibold text-blue-600" id="val-fontSize">11 pt</span>
           </div>
           <input type="range" id="fontSize" value="10" min="6" max="24" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
       </div>
 
       <div id="panel-2d" class="space-y-4 hidden">
-        <h3 class="font-medium text-gray-600 dark:text-gray-400">2D 條碼參數設定</h3>
+        <h3 class="font-medium">2D 條碼參數設定</h3>
         
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>整體尺寸 (寬/高)</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-size2d">250 px</span>
+            <span class="font-semibold text-blue-600" id="val-size2d">250 px</span>
           </div>
           <input type="range" id="size2d" value="250" min="100" max="500" step="10" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex justify-between text-sm">
             <span>周圍邊距 (Margin)</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400" id="val-margin2d">0 px</span>
+            <span class="font-semibold text-blue-600" id="val-margin2d">0 px</span>
           </div>
           <input type="range" id="margin2d" value="0" min="0" max="50" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div id="logo-upload-container" class="pt-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">上傳 LOGO 圖片 (僅限 QR Code)</label>
-          <input type="file" id="logoFile" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer dark:file:bg-gray-700 dark:file:text-blue-300">
+          <label class="block text-sm font-medium">上傳 LOGO 圖片 (僅限 QR Code)</label>
+          <input type="file" id="logoFile" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
         </div>
       </div>
     </div>
 
   </div>
 
-  <footer class="w-full text-center py-4 text-sm text-gray-400 dark:text-gray-500 mt-8 transition-colors duration-300">
+  <footer class="w-full text-center py-4 text-sm text-gray-400 mt-8 transition-colors duration-300">
     © 2026 | witt3c digital
   </footer>
 
@@ -165,12 +210,13 @@
     let uploadedLogoBase64 = null;
     let qrCodeInstance = null;
 
-    // === 深色模式切換邏輯 ===
+    // === 【全新重構】純粹且絕對穩定的日夜切換邏輯 ===
     const darkModeToggle = document.getElementById('darkModeToggle');
     const appBody = document.getElementById('appBody');
 
     darkModeToggle.addEventListener('click', () => {
-      appBody.classList.toggle('dark');
+      // 切換 body 的 .dark-mode 類別，完全交由原生 CSS 變數處理
+      appBody.classList.toggle('dark-mode');
     });
 
     const sliderMap = {
