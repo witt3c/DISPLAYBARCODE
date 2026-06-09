@@ -15,9 +15,9 @@
     <div class="flex flex-col justify-between items-center bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 min-h-[450px]">
       <h2 class="text-xl font-bold mb-4 self-start">即時預覽</h2>
       
-      <div id="preview-container" class="my-auto bg-white p-4 shadow-sm flex items-center justify-center min-w-[200px] min-h-[100px]">
-        <canvas id="barcodeCanvas"></canvas>
-        <div id="qrcodeContainer" class="hidden"></div>
+      <div id="preview-container" class="my-auto bg-white p-0 shadow-sm flex items-center justify-center min-w-[200px] min-h-[100px] border border-gray-200 overflow-hidden">
+        <canvas id="barcodeCanvas" class="block"></canvas>
+        <div id="qrcodeContainer" class="hidden block"></div>
       </div>
 
       <div class="w-full grid grid-cols-2 gap-4 mt-6">
@@ -70,17 +70,17 @@
         <div class="space-y-1">
           <div class="flex justify-between text-sm text-gray-600">
             <span>垂直邊距 (上下)</span>
-            <span class="font-semibold text-blue-600" id="val-padVertical">10 px</span>
+            <span class="font-semibold text-blue-600" id="val-padVertical">0 px</span>
           </div>
-          <input type="range" id="padVertical" value="10" min="0" max="60" step="2" class="w-full accent-blue-600 cursor-pointer">
+          <input type="range" id="padVertical" value="0" min="0" max="60" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
           <div class="flex justify-between text-sm text-gray-600">
             <span>水平邊距 (左右)</span>
-            <span class="font-semibold text-blue-600" id="val-padHorizontal">15 px</span>
+            <span class="font-semibold text-blue-600" id="val-padHorizontal">0 px</span>
           </div>
-          <input type="range" id="padHorizontal" value="15" min="0" max="100" step="5" class="w-full accent-blue-600 cursor-pointer">
+          <input type="range" id="padHorizontal" value="0" min="0" max="100" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div class="space-y-1">
@@ -106,9 +106,9 @@
         <div class="space-y-1">
           <div class="flex justify-between text-sm text-gray-600">
             <span>周圍邊距 (Margin)</span>
-            <span class="font-semibold text-blue-600" id="val-margin2d">10 px</span>
+            <span class="font-semibold text-blue-600" id="val-margin2d">0 px</span>
           </div>
-          <input type="range" id="margin2d" value="10" min="0" max="50" step="2" class="w-full accent-blue-600 cursor-pointer">
+          <input type="range" id="margin2d" value="0" min="0" max="50" step="1" class="w-full accent-blue-600 cursor-pointer">
         </div>
 
         <div id="logo-upload-container" class="pt-2">
@@ -121,11 +121,9 @@
   </div>
 
   <script>
-    // 全域變儲存使用者上傳的 LOGO Base64 資料
     let uploadedLogoBase64 = null;
     let qrCodeInstance = null;
 
-    // 滑桿 ID 與對應顯示數值的元件對照表
     const sliderMap = {
       'scaleX': 'val-scaleX',
       'scaleY': 'val-scaleY',
@@ -136,7 +134,6 @@
       'margin2d': 'val-margin2d'
     };
 
-    // 更新介面上的數字顯示
     function updateSliderLabels() {
       Object.keys(sliderMap).forEach(id => {
         const slider = document.getElementById(id);
@@ -148,37 +145,29 @@
       });
     }
 
-    // 監聽介面切換
     document.getElementById('barcodeType').addEventListener('change', function(e) {
       const type = e.target.value;
       const is1D = ['code128', 'ean13', 'code39'].includes(type);
       
-      // 切換參數面板顯示
       document.getElementById('panel-1d').classList.toggle('hidden', !is1D);
       document.getElementById('panel-2d').classList.toggle('hidden', is1D);
-      
-      // QR Code 以外的 2D 條碼不支援 LOGO 上傳
       document.getElementById('logo-upload-container').classList.toggle('hidden', type !== 'qrcode');
       
-      // 切換預覽元件
       document.getElementById('barcodeCanvas').classList.toggle('hidden', type === 'qrcode');
       document.getElementById('qrcodeContainer').classList.toggle('hidden', type !== 'qrcode');
 
       generateBarcode();
     });
 
-    // 監聽所有輸入與滑桿變動，達成「拖曳時即時預覽」
     document.getElementById('barcodeText').addEventListener('input', generateBarcode);
     
     Object.keys(sliderMap).forEach(id => {
-      // 使用 'input' 事件可以達到一邊拖曳一邊即時變化的效果
       document.getElementById(id).addEventListener('input', function() {
         updateSliderLabels();
         generateBarcode();
       });
     });
 
-    // 處理 LOGO 圖片上傳
     document.getElementById('logoFile').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
@@ -191,6 +180,46 @@
       }
     });
 
+    // 通用套件參數構建優化（針對完全貼平的物理校正）
+    function buildBwipOptions(type, text, is1D) {
+      const typeMapping = { code128: 'code128', ean13: 'ean13', code39: 'code39', datamatrix: 'datamatrix', pdf417: 'pdf417' };
+      
+      let options = {
+        bcid: typeMapping[type],
+        text: text,
+        includetext: is1D, 
+        textxalign: 'center',
+        // 【核心修正】強制覆蓋底層套件的油墨與擴散預設安全白邊，讓邊界完全可控
+        inkspread: 0,
+      };
+
+      if (is1D) {
+        const vMargin = parseInt(document.getElementById('padVertical').value);
+        const hMargin = parseInt(document.getElementById('padHorizontal').value);
+        const barHeightPx = parseInt(document.getElementById('scaleY').value);
+
+        options.scaleX = parseFloat(document.getElementById('scaleX').value);
+        options.height = barHeightPx / (options.scaleX * 0.3527); 
+        
+        options.paddingtop = vMargin;
+        options.paddingbottom = vMargin;
+        options.paddingleft = hMargin;
+        options.paddingright = hMargin;
+        options.textsize = parseInt(document.getElementById('fontSize').value);
+      } else {
+        // Data Matrix & PDF417 貼平補正
+        const size2d = parseInt(document.getElementById('size2d').value);
+        const margin2d = parseInt(document.getElementById('margin2d').value);
+        options.scaleX = size2d / 100; 
+        options.scaleY = size2d / 100;
+        options.paddingtop = margin2d;
+        options.paddingbottom = margin2d;
+        options.paddingleft = margin2d;
+        options.paddingright = margin2d;
+      }
+      return options;
+    }
+
     // === 主渲染函式 ===
     function generateBarcode() {
       const type = document.getElementById('barcodeType').value;
@@ -198,10 +227,10 @@
 
       if (!text.trim()) return;
 
-      // 1. 如果是 QR Code (使用 qr-code-styling 套件)
+      // 1. QR Code 完美貼平處理
       if (type === 'qrcode') {
-        const size = parseInt(document.getElementById('size2d').value) || 250;
-        const margin = parseInt(document.getElementById('margin2d').value) || 10;
+        const size = parseInt(document.getElementById('size2d').value);
+        const margin = parseInt(document.getElementById('margin2d').value);
 
         document.getElementById('qrcodeContainer').innerHTML = ''; 
         
@@ -210,7 +239,7 @@
           height: size,
           type: "svg", 
           data: text,
-          margin: margin,
+          margin: margin, // 直接連動 0px 機制
           image: uploadedLogoBase64, 
           dotsOptions: { color: "#000000", type: "square" },
           backgroundOptions: { color: "#ffffff" },
@@ -218,58 +247,24 @@
             crossOrigin: "anonymous",
             hideBackgroundDots: true, 
             imageSize: 0.3
+          },
+          // 【核心修正】強制作為 QR 碼物理無邊界渲染
+          qrOptions: {
+            typeNumber: 0,
+            mode: "Byte",
+            errorCorrectionLevel: "Q"
           }
         });
         qrCodeInstance.append(document.getElementById('qrcodeContainer'));
         return;
       }
 
-      // 2. 如果是其他條碼 (使用 bwip-js 套件)
-      const typeMapping = {
-        code128: 'code128',
-        ean13: 'ean13',
-        code39: 'code39',
-        datamatrix: 'datamatrix',
-        pdf417: 'pdf417'
-      };
-
+      // 2. 1D 條碼與其他 2D 條碼貼平處理
       const is1D = ['code128', 'ean13', 'code39'].includes(type);
-      
-      let options = {
-        bcid: typeMapping[type],
-        text: text,
-        includetext: is1D, 
-        textxalign: 'center',
-      };
-
-      if (is1D) {
-        const vMargin = parseInt(document.getElementById('padVertical').value) || 0;
-        const hMargin = parseInt(document.getElementById('padHorizontal').value) || 0;
-        const barHeightPx = parseInt(document.getElementById('scaleY').value) || 40;
-
-        options.scaleX = parseFloat(document.getElementById('scaleX').value) || 2;
-        
-        // 微調高度換算，確保拉動時維持 px 的線性回饋
-        options.height = barHeightPx / (options.scaleX * 0.3527); 
-        
-        options.paddingtop = vMargin;
-        options.paddingbottom = vMargin;
-        options.paddingleft = hMargin;
-        options.paddingright = hMargin;
-        options.textsize = parseInt(document.getElementById('fontSize').value) || 11;
-      } else {
-        // Data Matrix 與 PDF417
-        const size2d = parseInt(document.getElementById('size2d').value) || 250;
-        const margin2d = parseInt(document.getElementById('margin2d').value) || 10;
-        options.scaleX = size2d / 100; 
-        options.scaleY = size2d / 100;
-        options.paddingtop = margin2d;
-        options.paddingbottom = margin2d;
-        options.paddingleft = margin2d;
-        options.paddingright = margin2d;
-      }
+      const options = buildBwipOptions(type, text, is1D);
 
       try {
+        // 先渲染，bwip-js 會自動根據我們給予的 padding 生成對應大小的畫布，且無隱藏安全邊框
         bwipjs.toCanvas('barcodeCanvas', options);
       } catch (e) {
         console.error("條碼渲染錯誤:", e);
@@ -277,11 +272,8 @@
     }
 
     // === 下載邏輯實作 ===
-
-    // 下載 PNG
     document.getElementById('btnDownloadPNG').addEventListener('click', function() {
       const type = document.getElementById('barcodeType').value;
-      
       if (type === 'qrcode' && qrCodeInstance) {
         qrCodeInstance.download({ name: "barcode_qrcode", extension: "png" });
       } else {
@@ -293,43 +285,14 @@
       }
     });
 
-    // 下載 SVG
     document.getElementById('btnDownloadSVG').addEventListener('click', function() {
       const type = document.getElementById('barcodeType').value;
-      
       if (type === 'qrcode' && qrCodeInstance) {
         qrCodeInstance.download({ name: "barcode_qrcode", extension: "svg" });
       } else {
         const text = document.getElementById('barcodeText').value || " ";
-        const typeMapping = { code128: 'code128', ean13: 'ean13', code39: 'code39', datamatrix: 'datamatrix', pdf417: 'pdf417' };
         const is1D = ['code128', 'ean13', 'code39'].includes(type);
-        
-        let options = {
-          bcid: typeMapping[type],
-          text: text,
-          includetext: is1D,
-          textxalign: 'center',
-        };
-        
-        if (is1D) {
-          const vMargin = parseInt(document.getElementById('padVertical').value) || 0;
-          const hMargin = parseInt(document.getElementById('padHorizontal').value) || 0;
-          const barHeightPx = parseInt(document.getElementById('scaleY').value) || 40;
-
-          options.scaleX = parseFloat(document.getElementById('scaleX').value) || 2;
-          options.height = barHeightPx / (options.scaleX * 0.3527); 
-          options.paddingtop = vMargin;
-          options.paddingbottom = vMargin;
-          options.paddingleft = hMargin;
-          options.paddingright = hMargin;
-          options.textsize = parseInt(document.getElementById('fontSize').value) || 11;
-        } else {
-          const size2d = parseInt(document.getElementById('size2d').value) || 250;
-          const margin2d = parseInt(document.getElementById('margin2d').value) || 10;
-          options.scaleX = size2d / 100;
-          options.scaleY = size2d / 100;
-          options.paddingtop = margin2d; options.paddingbottom = margin2d; options.paddingleft = margin2d; options.paddingright = margin2d;
-        }
+        const options = buildBwipOptions(type, text, is1D);
 
         try {
           const svgOutput = bwipjs.toSVG(options);
@@ -346,7 +309,11 @@
       }
     });
 
-    // 初始化第一次渲染與標籤數值
+    // 初始將預設值改為 0 方便檢查貼平效果
+    document.getElementById('padVertical').value = 0;
+    document.getElementById('padHorizontal').value = 0;
+    document.getElementById('margin2d').value = 0;
+
     updateSliderLabels();
     generateBarcode();
   </script>
