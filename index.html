@@ -13,6 +13,9 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><text x='0' y='20' font-family='Material Symbols Outlined' font-size='24'>barcode</text></svg>">
 
   <style>
+    /* 核心修正：讓 Tailwind v4 認得 body 上的 .dark 類別切換 */
+    @variant dark (&:where(.dark, .dark *));
+
     /* 確保 Icon 的垂直對齊與渲染正確 */
     .material-symbols-outlined {
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -21,7 +24,7 @@
     }
   </style>
 </head>
-<body id="appBody" class="bg-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+<body id="appBody" class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col transition-colors duration-300">
 
   <nav class="w-full bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 py-4 px-8 mb-8 transition-colors duration-300">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -46,7 +49,7 @@
 
   <div class="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow w-full mb-auto transition-colors duration-300">
     
-    <div class="flex flex-col justify-between items-center bg-gray-50 dark:bg-gray-900 p-6 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 min-h-[450px] transition-colors duration-300">
+    <div class="flex flex-col justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-6 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 min-h-[450px] transition-colors duration-300">
       <h2 class="text-xl font-bold mb-4 self-start text-gray-800 dark:text-gray-200">即時預覽</h2>
       
       <div id="preview-container" class="my-auto bg-white p-0 shadow-sm flex items-center justify-center min-w-[200px] min-h-[100px] border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -154,7 +157,7 @@
 
   </div>
 
-  <footer class="w-full text-center py-4 text-sm text-gray-400 mt-8">
+  <footer class="w-full text-center py-4 text-sm text-gray-400 dark:text-gray-500 mt-8 transition-colors duration-300">
     © 2026 | witt3c digital
   </footer>
 
@@ -167,7 +170,6 @@
     const appBody = document.getElementById('appBody');
 
     darkModeToggle.addEventListener('click', () => {
-      // 切換 HTML body 的 dark 類別 (讓 Tailwind dark: 生效)
       appBody.classList.toggle('dark');
     });
 
