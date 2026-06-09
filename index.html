@@ -77,7 +77,198 @@
   </div>
 
   <script>
-    // 這裡放入下方的 JavaScript 邏輯
+    // 全域變數儲存使用者上傳的 LOGO Base64 資料
+let uploadedLogoBase64 = null;
+let qrCodeInstance = null;
+
+// 監聽介面切換
+document.getElementById('barcodeType').addEventListener('change', function(e) {
+  const type = e.target.value;
+  const is1D = ['code128', 'ean13', 'code39'].includes(type);
+  
+  // 切換參數面板顯示
+  document.getElementById('panel-1d').classList.toggle('hidden', !is1D);
+  document.getElementById('panel-2d').classList.toggle('hidden', is1D);
+  
+  // QR Code 以外的 2D 條碼不支援 LOGO 上傳
+  document.getElementById('logo-upload-container').classList.toggle('hidden', type !== 'qrcode');
+  
+  // 切換渲染容器
+  document.getElementById('barcodeCanvas').classList.toggle('hidden', type === 'qrcode');
+  document.getElementById('qrcodeContainer').classList.toggle('hidden', type !== 'qrcode');
+
+  generateBarcode();
+});
+
+// 監聽所有輸入欄位的改變，達成「即時預覽」
+const inputs = ['barcodeText', 'scaleX', 'scaleY', 'padTop', 'padBottom', 'padLeft', 'padRight', 'fontSize', 'size2d', 'margin2d'];
+inputs.forEach(id => {
+  document.getElementById(id).addEventListener('input', generateBarcode);
+});
+
+// 處理 LOGO 圖片上傳
+document.getElementById('logoFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      uploadedLogoBase64 = event.target.result;
+      generateBarcode(); // 重新渲染 QR Code
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// === 主渲染函式 ===
+function generateBarcode() {
+  const type = document.getElementById('barcodeType').value;
+  const text = document.getElementById('barcodeText').value || " ";
+
+  if (!text.trim()) return;
+
+  // 1. 如果是 QR Code (使用 qr-code-styling 套件)
+  if (type === 'qrcode') {
+    const size = parseInt(document.getElementById('size2d').value) || 250;
+    const margin = parseInt(document.getElementById('margin2d').value) || 10;
+
+    document.getElementById('qrcodeContainer').innerHTML = ''; // 清空舊的
+    
+    qrCodeInstance = new QRCodeStyling({
+      width: size,
+      height: size,
+      type: "svg", // 預設使用 SVG 渲染以同時支援高畫質導出
+      data: text,
+      margin: margin,
+      image: uploadedLogoBase64, // 帶入使用者上傳的 LOGO
+      dotsOptions: { color: "#000000", type: "square" },
+      backgroundOptions: { color: "#ffffff" },
+      imageOptions: {
+        crossOrigin: "anonymous",
+        hideBackgroundDots: true, // 自動隱藏 LOGO 後方方塊
+        imageSize: 0.3
+      }
+    });
+    qrCodeInstance.append(document.getElementById('qrcodeContainer'));
+    return;
+  }
+
+  // 2. 如果是其他條碼 (使用 bwip-js 套件)
+  // 對應 bwip-js 的套件代碼
+  const typeMapping = {
+    code128: 'code128',
+    ean13: 'ean13',
+    code39: 'code39',
+    datamatrix: 'datamatrix',
+    pdf417: 'pdf417'
+  };
+
+  const is1D = ['code128', 'ean13', 'code39'].includes(type);
+  
+  let options = {
+    bcid: typeMapping[type],
+    text: text,
+    includetext: is1D, // 1D 條碼下方顯示字元
+    textxalign: 'center',
+  };
+
+  if (is1D) {
+    options.scaleX = parseFloat(document.getElementById('scaleX').value) || 2;
+    options.scaleY = parseFloat(document.getElementById('scaleY').value) || 50;
+    options.paddingtop = parseInt(document.getElementById('padTop').value) || 0;
+    options.paddingbottom = parseInt(document.getElementById('padBottom').value) || 0;
+    options.paddingleft = parseInt(document.getElementById('padLeft').value) || 0;
+    options.paddingright = parseInt(document.getElementById('padRight').value) || 0;
+    options.textsize = parseInt(document.getElementById('fontSize').value) || 10;
+  } else {
+    // Data Matrix 與 PDF417 的尺寸與邊距處理
+    const size2d = parseInt(document.getElementById('size2d').value) || 250;
+    const margin2d = parseInt(document.getElementById('margin2d').value) || 10;
+    options.scaleX = size2d / 100; // 概略縮放比例
+    options.scaleY = size2d / 100;
+    options.paddingtop = margin2d;
+    options.paddingbottom = margin2d;
+    options.paddingleft = margin2d;
+    options.paddingright = margin2d;
+  }
+
+  try {
+    // 渲染至 Canvas
+    bwipjs.toCanvas('barcodeCanvas', options);
+  } catch (e) {
+    console.error("條碼渲染失敗，可能輸入格式不符:", e);
+    // 可以在這裡做 UI 錯誤提示，例如 EAN-13 必須為數字
+  }
+}
+
+// === 下載邏輯實作 ===
+
+// 下載 PNG
+document.getElementById('btnDownloadPNG').addEventListener('click', function() {
+  const type = document.getElementById('barcodeType').value;
+  
+  if (type === 'qrcode' && qrCodeInstance) {
+    qrCodeInstance.download({ name: "barcode_qrcode", extension: "png" });
+  } else {
+    const canvas = document.getElementById('barcodeCanvas');
+    const link = document.createElement('a');
+    link.download = `barcode_${type}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+});
+
+// 下載 SVG
+document.getElementById('btnDownloadSVG').addEventListener('click', function() {
+  const type = document.getElementById('barcodeType').value;
+  
+  if (type === 'qrcode' && qrCodeInstance) {
+    qrCodeInstance.download({ name: "barcode_qrcode", extension: "svg" });
+  } else {
+    // bwip-js 原生渲染到 canvas，若要匯出 SVG，需要改呼叫它的 bwipjs.toSVG 方法
+    const text = document.getElementById('barcodeText').value || " ";
+    const typeMapping = { code128: 'code128', ean13: 'ean13', code39: 'code39', datamatrix: 'datamatrix', pdf417: 'pdf417' };
+    const is1D = ['code128', 'ean13', 'code39'].includes(type);
+    
+    let options = {
+      bcid: typeMapping[type],
+      text: text,
+      includetext: is1D,
+      textxalign: 'center',
+    };
+    
+    if (is1D) {
+      options.scaleX = parseFloat(document.getElementById('scaleX').value) || 2;
+      options.scaleY = parseFloat(document.getElementById('scaleY').value) || 50;
+      options.paddingtop = parseInt(document.getElementById('padTop').value) || 0;
+      options.paddingbottom = parseInt(document.getElementById('padBottom').value) || 0;
+      options.paddingleft = parseInt(document.getElementById('padLeft').value) || 0;
+      options.paddingright = parseInt(document.getElementById('padRight').value) || 0;
+      options.textsize = parseInt(document.getElementById('fontSize').value) || 10;
+    } else {
+      const size2d = parseInt(document.getElementById('size2d').value) || 250;
+      const margin2d = parseInt(document.getElementById('margin2d').value) || 10;
+      options.scaleX = size2d / 100;
+      options.scaleY = size2d / 100;
+      options.paddingtop = margin2d; options.paddingbottom = margin2d; options.paddingleft = margin2d; options.paddingright = margin2d;
+    }
+
+    try {
+      const svgOutput = bwipjs.toSVG(options);
+      const blob = new Blob([svgOutput], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `barcode_${type}.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("生成 SVG 失敗");
+    }
+  }
+});
+
+// 初始化第一次渲染
+generateBarcode();
   </script>
 </body>
 </html>
